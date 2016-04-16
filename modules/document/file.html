@@ -1,0 +1,142 @@
+<section>
+    <div id=toolbar__ID>
+          <a id=back__ID>Back</a> <span id=ns__ID><a id=new__ID>New</a> <a id=save__ID>Save</a></span><span class=tab__ID></span><input placeholder='filter' id=keyword__ID type=text />
+          <input id=department__ID placeholder='Department' type=text ></input>
+          <input id=category__ID placeholder='Category' type=text ></input>
+          <input id=sub_category__ID placeholder='Sub Category' type=text ></input>
+          <a id=query__ID>Load</a> <a id=pv__ID >Print</a>
+          <span id=multi__ID>
+              <span class=tab__ID></span>Page Size: <select id=page_size__ID><option>30</option><option>50</option><option>100</option><option>200</option></select><span class=tab__ID></span>
+              <span id=I__ID style="display:none">0</span><span id=A__ID></span>
+              <img id=p__ID src="__BASE__/vmiis/Common-Code/image/p.png" ><img id=n__ID src="__BASE__/vmiis/Common-Code/image/n.png" >
+          </span>
+    </div>
+    <div id=pvdiv__ID>
+        <div id=excel_container__ID style='font-size:10pt;font-family: Helvetica, Arial, sans-serif;'>
+            <div id=excel__ID class='vm_excel_div' style='background-color:#fff'></div>
+        </div>
+    </div>
+</section>
+<script>
+    function F__ID(){
+        //-------------------------------------
+        VmInclude:__BASE__/vmiis/Common-Code/frame/excel_v2.js
+        VmInclude:__BASE__/vmiis/Common-Code/style/ease-in-out.js
+        //-------------------------------------
+        _fields="Choose,Document,Last Modified|lastModified,Size,Version,Description,Department,Category,Sub_Category";
+        _fields+=",Submit Date|DateTime,Submitted by|Author";
+        //-------------------------------------
+        /*
+        $('#department__ID').on('change',function(){
+            this.style.width = ((this.value.length + 1) * 8) + 'px';
+        })
+        */
+        $('#D__ID').on('load',function(){  /*set_first_dropdown_list_array(); set_first_dropdown_list();*/ _set_req(); _request_data(); })
+        //-------------------------------------
+        _table_process=function(table){
+            table.Choose={width:100, renderer:function(instance, td, row, col, prop, value, cellProperties){
+                if( $(td).html()!=="") return td;
+                $vm.set_file_input({td:td,filename_field:"Document",callback:function(file){
+        			var date=$vm.date_to_string_dmy(new Date(file.lastModified));
+        			_records[row].Document=file.name;
+        			_records[row].Size=file.size;
+        			_records[row].lastModified=date;
+                    _records[row].vm_dirty=1;
+                    $('#save__ID').css('background','#E00');
+        			$("#excel__ID").handsontable("setDataAtCell", row, col+1, file.name);
+        			$("#excel__ID").handsontable("setDataAtCell", row, col+2, date);
+        			$("#excel__ID").handsontable("setDataAtCell", row, col+3, file.size);
+                }});
+        		//--------------------------------------
+                return td;
+            }};
+            //-------------------------------------
+            table.Document={width:200,readOnly:true,renderer:function(instance, td, row, col, prop, value, cellProperties){
+                if(_records[row]!==undefined){
+                    $vm.file_link({td:td,rid:_records[row].ID,value:value});
+                }
+                return td;
+            }};
+            //-------------------------------------
+            table.lastModified={readOnly:true};
+            table.Size={readOnly:true};
+            //-------------------------------------
+            table.Department={type:'dropdown',trimDropdown:false,source:function (query, process){
+                var sql="with tb as (select distinct Item=S1 from [TABLE-"+pid+"]) select Item from tb where Item like '%'+@S1+'%' ";
+                $vm.read_record_auto({query:'',process:process,sql:sql,minLength:0});
+            }};
+            table.Category={type:'dropdown',trimDropdown:false,source:function (query, process){
+                var selection = $("#excel__ID").handsontable('getSelected');
+                var s1='';
+                if(selection!==undefined){
+                    var row=selection[0];
+                    s1=_records[row].Department;
+                }
+                var sql="with tb as (select distinct Item=S2,S1 from [TABLE-"+pid+"])";
+                sql+=" select Item from tb where S1='"+s1+"' and Item like '%'+@S1+'%' ";
+                $vm.read_record_auto({query:'',process:process,sql:sql,minLength:0});
+            }};
+            table.Sub_Category={type:'dropdown',trimDropdown:false,source:function (query, process){
+                var selection = $("#excel__ID").handsontable('getSelected');
+                var s1='';
+                var s2='';
+                if(selection!==undefined){
+                    var row=selection[0];
+                    s1=_records[row].Department;
+                    s2=_records[row].Category;
+                }
+                var row=selection[0];
+                var sql="with tb as (select distinct Item=S3,S2,S1 from [TABLE-"+pid+"])";
+                sql+=" select Item from tb where S1='"+s1+"' and S2='"+s2+"' and Item like '%'+@S1+'%' ";
+                $vm.read_record_auto({query:'',process:process,sql:sql,minLength:0});
+            }};
+        }
+        //-------------------------------------
+        var pid=$vm.module_list['category'][0];
+        var sqlA="with tb as (select distinct Name=S1 from [FORM-"+pid+"])";  sqlA+=" select Name from tb where Name like '%'+@S1+'%' ";
+        var sqlB="select Name='' ";
+        var sqlC="select Name='' ";
+        //-------------------------------------
+        var req_A={input_id:'department__ID',sql:sqlA,minLength:0,callback:function(event,ui){
+            sqlB="with tb as (select distinct Name=S2,S1 from [FORM-"+pid+"])";
+            sqlB+=" select Name from tb where S1='"+ui.item.label+"' and Name like '%'+@S1+'%' ";
+            req_B.sql=sqlB;
+        }}
+        var req_B={input_id:'category__ID',sql:sqlB,minLength:0,callback:function(event,ui){
+            sqlC="with tb as (select distinct Name=S3,S2,S1 from [FORM-"+pid+"])";
+            sqlC+=" select Name from tb where S1='"+$('#department__ID').val()+"' and S2='"+ui.item.label+"' and Name like '%'+@S1+'%' ";
+            req_B.sql=sqlB;
+        }}
+        var req_C={input_id:'sub_category__ID',sql:sqlC,minLength:0}
+        //-------------------------------------
+        $vm.auto_input(req_A);
+        $vm.auto_input(req_B);
+        $vm.auto_input(req_C);
+        //-------------------------------------
+        _before_submit=function(record,dbv){
+            dbv.S1=record.Department;
+            dbv.S2=record.Category;
+            dbv.S3=record.Sub_Category;
+            return true;
+        };
+        //-------------------------------------
+        _set_req=function(){
+            var where=" S1 like '%'+@S2+'%' and S2 like '%'+@S3+'%' and S3 like '%'+@S4+'%' "
+            //var where=" S1=@S2 and S2=@S3 and S3=@S4"
+            var sql="with tb as (select S1,S2,S3,Information,ID,UID,PUID,DateTime,Author,RowNum=row_number() over (order by ID DESC) from [TABLE-"+_db_pid+"-@S1] )";
+            sql+="select S1,S2,S3,Information,ID,UID,PUID,DateTime,Author,RowNum from tb where "+where+" and RowNum between @I6 and @I7";
+            var sql_n="select count(ID) from [TABLE-"+_db_pid+"-@S1] where "+where;
+            _req={cmd:'query_records',sql:sql,sql_n:sql_n,s1:'"'+$('#keyword__ID').val()+'"',s2:$('#department__ID').val(),s3:$('#category__ID').val(),s4:$('#sub_category__ID').val(),I:$('#I__ID').text(),page_size:$('#page_size__ID').val()}
+       }
+    }
+</script>
+<style>
+    VmInclude:__BASE__/vmiis/Common-Code/style/default.css
+    .ui-autocomplete {
+         z-index: 9999 !important;
+    }
+    .ui-menu-item:hover{
+        color:red;
+        font-weight: 200;
+    }
+</style>

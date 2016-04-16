@@ -1,0 +1,154 @@
+<section>
+    <div id=toolbar__ID>
+          <a id=back__ID>Back</a> <span id=ns__ID><a id=new__ID>New</a> <a id=save__ID>Save</a></span><span class=tab__ID></span><input placeholder='filter' id=keyword__ID type=text />
+          <select id=department__ID placeholder='Department' ></select>
+          <select id=category__ID placeholder='Category' ></select>
+          <select id=sub_category__ID placeholder='Sub Category' ></select>
+          <a id=query__ID>Load</a> <a id=pv__ID >Print</a>
+          <span id=multi__ID>
+              <span class=tab__ID></span>Page Size: <select id=page_size__ID><option>30</option><option>50</option><option>100</option><option>200</option></select><span class=tab__ID></span>
+              <span id=I__ID style="display:none">0</span><span id=A__ID></span>
+              <img id=p__ID src="__BASE__/vmiis/Common-Code/image/p.png" ><img id=n__ID src="__BASE__/vmiis/Common-Code/image/n.png" >
+              <span class=tab__ID></span>Start page: <input id=start__ID type=text style="width:45px" />
+              Number of page: <input id=num__ID type=text  style="width:45px" />
+              <a id=export__ID>Export</a>
+          </span>
+          <span id=elapsed__ID style='float:right'></span>
+    </div>
+    <div id=pvdiv__ID>
+        <div id=excel_container__ID style='font-size:10pt;font-family: Helvetica, Arial, sans-serif;'>
+            <div id=excel__ID class='vm_excel_div' style='background-color:#fff'></div>
+        </div>
+    </div>
+</section>
+<script>
+    function F__ID(){
+        //-------------------------------------
+        VmInclude:__BASE__/vmiis/Common-Code/frame/excel_v2.js
+        VmInclude:__BASE__/vmiis/Common-Code/style/ease-in-out.js
+        //-------------------------------------
+        _fields="Choose,Document,Last Modified|lastModified,Size,Version,Description,Department,Category,Sub_Category";
+        _fields+=",Submit Date|DateTime,Submitted by|Author";
+        //-------------------------------------
+        var first_list=[];
+        var second_list=[];
+        var third_list=[];
+        $('#D__ID').on('load',function(){  set_first_dropdown_list_array(); set_first_dropdown_list(); _set_req(); _request_data(); })
+        //-------------------------------------
+        _table_process=function(table){
+            table.Choose={width:100, renderer:function(instance, td, row, col, prop, value, cellProperties){
+                if( $(td).html()!=="") return td;
+                $vm.set_file_input({td:td,filename_field:"Document",callback:function(file){
+        			var date=$vm.date_to_string_dmy(new Date(file.lastModified));
+        			_records[row].Document=file.name;
+        			_records[row].Size=file.size;
+        			_records[row].lastModified=date;
+                    _records[row].vm_dirty=1;
+                    $('#save__ID').css('background','#E00');
+        			$("#excel__ID").handsontable("setDataAtCell", row, col+1, file.name);
+        			$("#excel__ID").handsontable("setDataAtCell", row, col+2, date);
+        			$("#excel__ID").handsontable("setDataAtCell", row, col+3, file.size);
+                }});
+        		//--------------------------------------
+                return td;
+            }};
+            //-------------------------------------
+            table.Document={width:200,readOnly:true,renderer:function(instance, td, row, col, prop, value, cellProperties){
+                if(_records[row]!==undefined){
+                    $vm.file_link({td:td,rid:_records[row].ID,value:value});
+                }
+                return td;
+            }};
+            //-------------------------------------
+            table.lastModified={readOnly:true};
+            table.Size={readOnly:true};
+            //-------------------------------------
+            table.Department={type:'dropdown',source:first_list}
+            table.Category={type:'dropdown',source:second_list}
+            //table.Department={type:'dropdown',source:first_list}
+        }
+        //-------------------------------------
+        _after_change=function(record,C){
+            if(C=='Department'){
+                alert(C);
+                second_list=first_list;
+                _colu
+                $("#excel__ID").handsontable("render");
+            }
+        }
+        //-------------------------------------
+        var set_first_dropdown_list_array=function(){
+            jQuery.ajaxSetup({async:false});
+            var pid=$vm.module_list['category'][0];
+            var sql="select distinct S1 from [TABLE-"+pid+"] order by S1";
+            var req={cmd:'query_records',sql:sql}
+            $VmAPI.request({data:req,callback:function(res){
+                first_list=[];
+                for(var i=0;i<res.records.length;i++){
+                    var v=res.records[i].S1;
+                    first_list.push(v);
+                }
+            }})
+            jQuery.ajaxSetup({async:true});
+        }
+        //-------------------------------------
+        var set_first_dropdown_list=function(){
+            var $List=$('#department__ID');
+            if( $List.html()!=='') return;
+            var pid=$vm.module_list['category'][0];
+            var sql="select distinct S1 from [TABLE-"+pid+"] order by S1";
+            var req={cmd:'query_records',sql:sql}
+            $VmAPI.request({data:req,callback:function(res){
+                $List.html('');
+                $List.append(  $('<option></option>').val('').html('---') );
+                for(var i=0;i<res.records.length;i++){
+                    var v=res.records[i].S1;
+                	$List.append(  $('<option></option>').val(v).html(v) );
+                }
+                $List.on('change',function(){
+                    set_second_dropdown_list();
+                });
+            }})
+        }
+        //-------------------------------------
+        var set_second_dropdown_list=function(){
+            var s1=$('#department__ID').val();
+            var pid=$vm.module_list['category'][0];
+            var sql="select distinct S2 from [TABLE-"+pid+"] where S1='"+s1+"' order by S2 ";
+            var req={cmd:'query_records',sql:sql}
+            $VmAPI.request({data:req,callback:function(res){
+                var $List=$('#category__ID');
+                $List.html('');
+                $List.append(  $('<option></option>').val('').html('---') );
+                for(var i=0;i<res.records.length;i++){
+                    var v=res.records[i].S2;
+                	$List.append(  $('<option></option>').val(v).html(v) );
+                }
+                $List.on('change',function(){
+                    set_third_dropdown_list();
+                });
+            }})
+        }
+        //-------------------------------------
+        var set_third_dropdown_list=function(){
+            var s1=$('#department__ID').val();
+            var s2=$('#category__ID').val();
+            var pid=$vm.module_list['category'][0];
+            var sql="select distinct S3 from [TABLE-"+pid+"] where S1='"+s1+"' and S2='"+s2+"' order by S3 ";
+            var req={cmd:'query_records',sql:sql}
+            $VmAPI.request({data:req,callback:function(res){
+                var $List=$('#sub_category__ID');
+                $List.html('');
+                $List.append(  $('<option></option>').val('').html('---') );
+                for(var i=0;i<res.records.length;i++){
+                    var v=res.records[i].S3;
+                	$List.append(  $('<option></option>').val(v).html(v) );
+                }
+            }})
+        }
+        //-------------------------------------
+    }
+</script>
+<style>
+    VmInclude:__BASE__/vmiis/Common-Code/style/default.css
+</style>
