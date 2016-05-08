@@ -26,12 +26,7 @@
         _fields="Choose,Document,Last Modified|lastModified,Size,Version,Description,Department,Category,Sub_Category";
         _fields+=",Submit Date|DateTime,Submitted by|Author";
         //-------------------------------------
-        /*
-        $('#department__ID').on('change',function(){
-            this.style.width = ((this.value.length + 1) * 8) + 'px';
-        })
-        */
-        $('#D__ID').on('load',function(){  /*set_first_dropdown_list_array(); set_first_dropdown_list();*/ _set_req(); _request_data(); })
+        $('#D__ID').on('load',function(){ _set_req(); _request_data(); })
         //-------------------------------------
         _table_process=function(table){
             table.Choose={width:100, renderer:function(instance, td, row, col, prop, value, cellProperties){
@@ -105,7 +100,7 @@
         var req_B={input_id:'category__ID',sql:sqlB,minLength:0,callback:function(event,ui){
             sqlC="with tb as (select distinct Name=S3,S2,S1 from [FORM-"+pid+"])";
             sqlC+=" select Name from tb where S1='"+$('#department__ID').val()+"' and S2='"+ui.item.label+"' and Name like '%'+@S1+'%' ";
-            req_B.sql=sqlB;
+            req_C.sql=sqlC;
         }}
         var req_C={input_id:'sub_category__ID',sql:sqlC,minLength:0}
         //-------------------------------------
@@ -120,9 +115,14 @@
             return true;
         };
         //-------------------------------------
+        _new_pre_data_process=function(){
+            $("#excel__ID").handsontable("setDataAtCell", 0, 6, $('#department__ID').val());
+            $("#excel__ID").handsontable("setDataAtCell", 0, 7, $('#category__ID').val());
+            $("#excel__ID").handsontable("setDataAtCell", 0, 8, $('#sub_category__ID').val());
+        };
+        //-------------------------------------
         _set_req=function(){
             var where=" S1 like '%'+@S2+'%' and S2 like '%'+@S3+'%' and S3 like '%'+@S4+'%' "
-            //var where=" S1=@S2 and S2=@S3 and S3=@S4"
             var sql="with tb as (select S1,S2,S3,Information,ID,UID,PUID,DateTime,Author,RowNum=row_number() over (order by ID DESC) from [TABLE-"+_db_pid+"-@S1] )";
             sql+="select S1,S2,S3,Information,ID,UID,PUID,DateTime,Author,RowNum from tb where "+where+" and RowNum between @I6 and @I7";
             var sql_n="select count(ID) from [TABLE-"+_db_pid+"-@S1] where "+where;
